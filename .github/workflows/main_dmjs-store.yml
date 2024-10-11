@@ -1,0 +1,72 @@
+name: Build, Deploy, and Release - djms-store-api
+
+on:
+  push:
+    branches:
+      - main
+      - Dev
+  pull_request:
+     branches:
+      - main
+      - Dev
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: develop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          
+      - name: npm install, build, and test
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          CALLBACK_URL: ${{ secrets.CALLBACK_URL }}
+          GOOGLE_PASSWORD: ${{ secrets.GOOGLE_PASSWORD }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_SECRET: ${{ secrets.PAYPAL_SECRET }}
+          PAYPAL_API: ${{ secrets.PAYPAL_API }}
+
+        run: |
+          npm install
+          npm run build --if-present
+          npm run test 
+          npm run test:e2e
+
+  docker:
+      if: github.ref == 'refs/heads/main'
+      needs: build
+      runs-on: ubuntu-latest
+      steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+          - name: QEMU
+            uses: docker/setup-qemu-action@v3
+          - name: set up Docker Buildx
+            uses: docker/setup-buildx-action@v3
+          - name: Login to DockerHub
+            uses: docker/login-action@v3
+            with:
+              username: ${{ secrets.DOCKER_USR }}
+              password: ${{ secrets.DOCKER_PASS }}
+          - name: Build and push
+            uses: docker/build-push-action@v5
+            with:
+                context: .
+                push: true
+                tags: j2loop/djms-store-api:latest
+
+
