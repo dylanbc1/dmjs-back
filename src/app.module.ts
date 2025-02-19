@@ -54,7 +54,7 @@ import { join } from 'path';
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       autoLoadEntities:true,
-      synchronize: false,
+      synchronize: true,
       ssl: {
         rejectUnauthorized :false
       },
